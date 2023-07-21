@@ -1,12 +1,12 @@
 
 /**
  * @file Tokenizers are used to prepare textual inputs for a model.
- * 
+ *
  * **Example:** Create an `AutoTokenizer` and use it to tokenize a sentence.
  * This will automatically detect the tokenizer type based on the tokenizer class defined in `tokenizer.json`.
  * ```javascript
  * import { AutoTokenizer } from '@xenova/transformers';
- * 
+ *
  * let tokenizer = await AutoTokenizer.from_pretrained('bert-base-uncased');
  * let { input_ids } = await tokenizer('I love transformers!');
  * // Tensor {
@@ -16,7 +16,7 @@
  * //   size: 6,
  * // }
  * ```
- * 
+ *
  * @module tokenizers
  */
 
@@ -989,7 +989,7 @@ class BertPreTokenizer extends PreTokenizer {
     /**
      * A PreTokenizer that splits text into wordpieces using a basic tokenization scheme
      * similar to that used in the original implementation of BERT.
-     * 
+     *
      * @param {Object} config The configuration object.
      */
     constructor(config) {
@@ -1001,7 +1001,7 @@ class BertPreTokenizer extends PreTokenizer {
     }
     /**
      * Tokenizes a single text using the BERT pre-tokenization scheme.
-     * 
+     *
      * @param {string} text The text to tokenize.
      * @returns {string[]} An array of tokens.
      */
@@ -1396,7 +1396,7 @@ class Decoder extends Callable {
 
     /**
      * Apply the decoder to a list of tokens.
-     * 
+     *
      * @param {string[]} tokens The list of tokens.
      * @returns {string[]} The decoded list of tokens.
      * @throws {Error} If the `decode_chain` method is not implemented in the subclass.
@@ -1884,6 +1884,16 @@ export class PreTrainedTokenizer extends Callable {
         this.sep_token = this.getToken(tokenizerConfig, 'sep_token');
         this.sep_token_id = this.model.tokens_to_ids.get(this.sep_token);
 
+        this.bos_token = this.getToken(tokenizerConfig, 'bos_token');
+        if (this.bos_token) {
+            this.bos_token_id = this.model.tokens_to_ids.get(this.bos_token);
+        }
+
+        this.eos_token = this.getToken(tokenizerConfig, 'eos_token');
+        if (this.eos_token) {
+            this.eos_token_id = this.model.tokens_to_ids.get(this.eos_token);
+        }
+
         this.model_max_length = tokenizerConfig.model_max_length;
 
         /** @type {boolean} Whether or not to strip the text when tokenizing (removing excess spaces before and after the string). */
@@ -1921,11 +1931,11 @@ export class PreTrainedTokenizer extends Callable {
     }
 
     /**
-     * Loads a pre-trained tokenizer from the given `pretrained_model_name_or_path`. 
-     * 
+     * Loads a pre-trained tokenizer from the given `pretrained_model_name_or_path`.
+     *
      * @param {string} pretrained_model_name_or_path The path to the pre-trained tokenizer.
      * @param {PretrainedOptions} options Additional options for loading the tokenizer.
-     * 
+     *
      * @throws {Error} Throws an error if the tokenizer.json or tokenizer_config.json files are not found in the `pretrained_model_name_or_path`.
      * @returns {Promise<PreTrainedTokenizer>} A new instance of the `PreTrainedTokenizer` class.
      */
@@ -2033,6 +2043,13 @@ export class PreTrainedTokenizer extends Callable {
 
         // Ensure it is less than model max length
         max_length = Math.min(max_length, this.model_max_length)
+
+        if (this.bos_token_id) {
+            tokens = tokens.map(x => [this.bos_token_id].concat(x));
+        }
+        if (this.eos_token_id) {
+            tokens = tokens.map(x => x.concat([this.eos_token_id]));
+        }
 
         /** @type {any[]|Tensor} */
         let attention_mask = [];
@@ -2343,14 +2360,14 @@ export class GPTNeoXTokenizer extends PreTrainedTokenizer { }
 
 /**
  * The NllbTokenizer class is used to tokenize text for NLLB ("No Language Left Behind") models.
- * 
+ *
  * No Language Left Behind (NLLB) is a first-of-its-kind, AI breakthrough project
  * that open-sources models capable of delivering high-quality translations directly
  * between any pair of 200+ languages — including low-resource languages like Asturian,
  * Luganda, Urdu and more. It aims to help people communicate with anyone, anywhere,
  * regardless of their language preferences. For more information, check out their
  * [paper](https://arxiv.org/abs/2207.04672).
- * 
+ *
  * For a list of supported languages (along with their language codes),
  * @see {@link https://github.com/facebookresearch/flores/blob/main/flores200/README.md#languages-in-flores-200}
  */
@@ -2940,11 +2957,11 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
     /**
      * Groups tokens by word. Returns a tuple containing a list of strings with the words,
      * and a list of `token_id` sequences with the tokens making up each word.
-     * @param {number[]} tokens 
-     * @param {string} [language] 
-     * @param {string} prepend_punctionations 
-     * @param {string} append_punctuations 
-     * 
+     * @param {number[]} tokens
+     * @param {string} [language]
+     * @param {string} prepend_punctionations
+     * @param {string} append_punctuations
+     *
      * @private
      */
     combineTokensIntoWords(tokens, language, prepend_punctionations = "\"'“¡¿([{-", append_punctuations = "\"'.。,，!！?？:：”)]}、") {
@@ -3018,7 +3035,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
 
     /**
      * Combine tokens into words by splitting at any position where the tokens are decoded as valid unicode points.
-     * @param {number[]} tokens 
+     * @param {number[]} tokens
      * @returns {*}
      * @private
      */
@@ -3063,7 +3080,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
 
     /**
      * Combine tokens into words by splitting at whitespace and punctuation tokens.
-     * @param {number[]} tokens 
+     * @param {number[]} tokens
      * @private
      */
     splitTokensOnSpaces(tokens) {
@@ -3106,11 +3123,11 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
 
     /**
      * Merges punctuation tokens with neighboring words.
-     * @param {string[]} words 
-     * @param {number[][]} tokens 
-     * @param {number[][]} indices 
-     * @param {string} prepended 
-     * @param {string} appended 
+     * @param {string[]} words
+     * @param {number[][]} tokens
+     * @param {number[][]} indices
+     * @param {string} prepended
+     * @param {string} appended
      * @private
      */
     mergePunctuations(words, tokens, indices, prepended, appended) {
@@ -3165,9 +3182,9 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
     /**
      * Helper function to build translation inputs for a `WhisperTokenizer`,
      * depending on the language, task, and whether to predict timestamp tokens.
-     * 
+     *
      * Used to override the prefix tokens appended to the start of the label sequence.
-     * 
+     *
      * **Example: Get ids for a language**
      * ```javascript
      * // instantiate the tokenizer and set the prefix token to Spanish
@@ -3175,7 +3192,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
      * let forced_decoder_ids = tokenizer.get_decoder_prompt_ids({ language: 'spanish' });
      * // [(1, 50262), (2, 50363)]
      * ```
-     * 
+     *
      * @param {Object} options Options to generate the decoder prompt.
      * @param {string} [options.language] The language of the transcription text.
      * The corresponding language id token is appended to the start of the sequence for multilingual
@@ -3546,7 +3563,7 @@ class TokenLatticeNode {
 /**
  * Helper class which is used to instantiate pretrained tokenizers with the `from_pretrained` function.
  * The chosen tokenizer class is determined by the type specified in the tokenizer config.
- * 
+ *
  * @example
  * let tokenizer = await AutoTokenizer.from_pretrained('bert-base-uncased');
  */
@@ -3580,17 +3597,17 @@ export class AutoTokenizer {
 
     /**
      * Instantiate one of the tokenizer classes of the library from a pretrained model.
-     * 
+     *
      * The tokenizer class to instantiate is selected based on the `tokenizer_class` property of the config object
      * (either passed as an argument or loaded from `pretrained_model_name_or_path` if possible)
-     * 
+     *
      * @param {string} pretrained_model_name_or_path The name or path of the pretrained model. Can be either:
      * - A string, the *model id* of a pretrained tokenizer hosted inside a model repo on huggingface.co.
      *   Valid model ids can be located at the root-level, like `bert-base-uncased`, or namespaced under a
      *   user or organization name, like `dbmdz/bert-base-german-cased`.
      * - A path to a *directory* containing tokenizer files, e.g., `./my_model_directory/`.
      * @param {PretrainedOptions} options Additional options for loading the tokenizer.
-     * 
+     *
      * @returns {Promise<PreTrainedTokenizer>} A new instance of the PreTrainedTokenizer class.
      */
     static async from_pretrained(pretrained_model_name_or_path, {
